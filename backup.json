@@ -1,0 +1,192 @@
+{
+    "STATIONS": [
+        {
+            "id": "PC-01",
+            "name": "Station Aleph",
+            "status": "available",
+            "assigned_user": null,
+            "hardware": {
+                "os": "Windows 11",
+                "ram": "16GB",
+                "cpu": "Intel i7-12700",
+                "storage": "512GB SSD"
+            }
+        },
+        {
+            "id": "PC-02",
+            "name": "Station Bet",
+            "status": "occupied",
+            "assigned_user": "Yossi",
+            "hardware": {
+                "os": "Windows 11",
+                "ram": "16GB",
+                "cpu": "Intel i7-12700",
+                "storage": "512GB SSD"
+            }
+        },
+        {
+            "id": "PC-03",
+            "name": "Station Gimel",
+            "status": "maintenance",
+            "assigned_user": null,
+            "hardware": {
+                "os": "Ubuntu 22.04",
+                "ram": "32GB",
+                "cpu": "AMD Ryzen 9 5900X",
+                "storage": "1TB NVMe"
+            }
+        },
+        {
+            "id": "PC-04",
+            "name": "Linux Dev Station",
+            "status": "available",
+            "assigned_user": null,
+            "hardware": {
+                "os": "Ubuntu 22.04",
+                "ram": "32GB",
+                "cpu": "AMD Ryzen 7 5800X",
+                "storage": "1TB NVMe"
+            }
+        },
+        {
+            "id": "PC-05",
+            "name": "Instructor Station",
+            "status": "occupied",
+            "assigned_user": "Meirav",
+            "hardware": {
+                "os": "macOS Ventura",
+                "ram": "64GB",
+                "cpu": "Apple M2 Pro",
+                "storage": "2TB SSD"
+            }
+        },
+        {
+            "id": "PC-06",
+            "name": "Test Node A",
+            "status": "available",
+            "assigned_user": null,
+            "hardware": {
+                "os": "Windows 10",
+                "ram": "8GB",
+                "cpu": "Intel i5-10400",
+                "storage": "256GB SSD"
+            }
+        },
+        {
+            "id": "PC-07",
+            "name": "Test Node B",
+            "status": "available",
+            "assigned_user": null,
+            "hardware": {
+                "os": "Windows 10",
+                "ram": "8GB",
+                "cpu": "Intel i5-10400",
+                "storage": "256GB SSD"
+            }
+        },
+        {
+            "id": "PC-08",
+            "name": "DevOps Lab Node",
+            "status": "occupied",
+            "assigned_user": "Avi",
+            "hardware": {
+                "os": "Ubuntu 22.04",
+                "ram": "32GB",
+                "cpu": "Intel Xeon E-2278G",
+                "storage": "2TB HDD"
+            }
+        }
+    ],
+    "USERS": [
+        {
+            "id": 1,
+            "name": "Yossi",
+            "role": "Student",
+            "station": "PC-02"
+        },
+        {
+            "id": 2,
+            "name": "Avi",
+            "role": "Student",
+            "station": "PC-08"
+        },
+        {
+            "id": 3,
+            "name": "Meirav",
+            "role": "Instructor",
+            "station": "PC-05"
+        },
+        {
+            "id": 4,
+            "name": "Noa",
+            "role": "Technician",
+            "station": null
+        },
+        {
+            "id": 5,
+            "name": "Idan",
+            "role": "Student",
+            "station": null
+        },
+        {
+            "id": 6,
+            "name": "Shira",
+            "role": "Student",
+            "station": null
+        },
+        {
+            "id": 7,
+            "name": "Rotem",
+            "role": "Student",
+            "station": null
+        },
+        {
+            "id": 8,
+            "name": "Tal",
+            "role": "Student",
+            "station": null
+        }
+    ],
+    "ISSUES": [
+        {
+            "id": 1,
+            "station_id": "PC-03",
+            "description": "Kernel panic on boot - needs OS reinstall",
+            "severity": "high",
+            "state": "open",
+            "resolution_note": null
+        },
+        {
+            "id": 2,
+            "station_id": "PC-06",
+            "description": "Keyboard is missing two keycaps",
+            "severity": "low",
+            "state": "open",
+            "resolution_note": null
+        },
+        {
+            "id": 3,
+            "station_id": "PC-01",
+            "description": "Mouse scroll wheel not working",
+            "severity": "low",
+            "state": "resolved",
+            "resolution_note": "Replaced with spare mouse from storage room."
+        },
+        {
+            "id": 4,
+            "station_id": "PC-08",
+            "description": "Disk errors showing up in logs - HDD might be failing",
+            "severity": "high",
+            "state": "open",
+            "resolution_note": null
+        },
+        {
+            "id": 5,
+            "station_id": "PC-07",
+            "description": "Monitor screen flickers sometimes",
+            "severity": "medium",
+            "state": "open",
+            "resolution_note": null
+        }
+    ]
+}
