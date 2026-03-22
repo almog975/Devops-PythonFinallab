@@ -3,7 +3,7 @@ stations.py - Station management module.
 Handles viewing, adding, and updating lab stations.
 """
 
-import os
+
 
 import ascii_art
 
