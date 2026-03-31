@@ -16,6 +16,7 @@ def users_menu(users, stations):
         print("  3. Assign User to Station")
         print("  4. Release User from Station")
         print("  5. Search User by Name")
+        print("  6. Delete User")
         print("  0. Back to Main Menu")
 
         choice = input("\n  Enter your choice: ").strip()
@@ -30,6 +31,8 @@ def users_menu(users, stations):
             users, stations = release_user(users, stations)
         elif choice == "5":
             search_user(users)
+        elif choice == "6":
+            users, stations = delete_user(users, stations)
         elif choice == "0":
             break
         else:
@@ -173,6 +176,30 @@ def search_user(users):
 
     if not found:
         print(f"  No users found matching '{query}'.")
+
+
+def delete_user(users, stations):
+    """Remove a user by ID; free their station if they were assigned."""
+    if not users:
+        print("\n  No users registered yet.")
+        return users, stations
+
+    user_id = _get_valid_number("  Enter User ID: ")
+    user = _find_user(users, user_id)
+
+    if not user:
+        print("  User not found.")
+        return users, stations
+
+    if user["station"]:
+        sid = user["station"]
+        if sid in stations:
+            stations[sid]["status"] = "available"
+            stations[sid]["assigned_user"] = None
+
+    users.remove(user)
+    print(f"  [+] User {user_id} deleted.")
+    return users, stations
 
 
 def _find_user(users, user_id):
