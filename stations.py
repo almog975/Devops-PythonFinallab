@@ -15,8 +15,8 @@ def stations_menu(stations, users):
     while True:
 
         
-        print("  === STATIONS MENU ===")
-        print("  1. View All Stations")
+        print("\n  === STATIONS MENU ===")
+        print("\n  1. View All Stations")
         print("  2. Filter by Status")
         print("  3. Sort by Station ID")
         print("  4. Add New Station")
@@ -71,9 +71,10 @@ def view_all_stations(stations):
 def filter_stations_by_status(stations):
     """Show only stations that match a chosen status."""
     print("\n  Filter by:")
-    print("  1. Available")
+    print("\n  1. Available")
     print("  2. Occupied")
     print("  3. Maintenance")
+    print("  0. Back to Main Menu")
 
     choice = input("\n  Enter your choice: ").strip()
 
@@ -84,6 +85,8 @@ def filter_stations_by_status(stations):
         target = "occupied"
     elif choice == "3":
         target = "maintenance"
+    elif choice == "0":
+        return
     else:
         print("  [!] Invalid choice.")
         return
