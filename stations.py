@@ -3,6 +3,8 @@ stations.py - Station management module.
 Handles viewing, adding, and updating lab stations.
 """
 
+
+
 import ascii_art
 
 # list of the only allowed status values
@@ -22,6 +24,7 @@ def stations_menu(stations, users):
         print("  4. Add New Station")
         print("  5. Update Station Status")
         print("  6. Update Hardware Specs")
+        print("  7. Search Station by ID")
         print("  0. Back to Main Menu")
 
         choice = input("\n  Enter your choice: ").strip()
@@ -38,6 +41,9 @@ def stations_menu(stations, users):
             stations = update_station_status(stations)
         elif choice == "6":
             stations = update_hardware_specs(stations)
+        elif choice == "7":
+            stationid = input("\n  Enter Station ID to search: ").strip().upper()
+            search_station_by_id(stations,stationid)
         elif choice == "0":
             break  
         else:
@@ -268,3 +274,24 @@ def _get_valid_status():
             return status
         # the input was not one of the 3 allowed values
         print("  [!] Please enter: available, occupied, or maintenance")
+
+def search_station_by_id(stations, station_id):
+    """Print station details for the given ID. Return None if the station is not found."""
+    # check that the ID exists
+    if station_id not in stations:
+        print(f"  [!] Station '{station_id}' not found.")
+        return None
+    
+    # if found, print the details in a nice format
+    # unpacks each hardware spec into its own variable for easier formatting
+    os = stations[station_id]["hardware"]["os"] 
+    ram = stations[station_id]["hardware"]["ram"] 
+    cpu = stations[station_id]["hardware"]["cpu"] 
+    storage = stations[station_id]["hardware"]["storage"] 
+    id = stations[station_id]['name']
+    status = stations[station_id]['status']
+    print ("Found the following station details:")
+    print(f"ID: {station_id}, Name: {id}, Status: {status}, OS: {os}, RAM: {ram}, CPU: {cpu}, Storage: {storage}")
+    
+    
+   
