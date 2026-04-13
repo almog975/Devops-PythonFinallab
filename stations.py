@@ -5,6 +5,7 @@ Handles viewing, adding, and updating lab stations.
 
 import ascii_art
 
+
 # list of the only allowed status values
 VALID_STATUSES = ["available", "occupied", "maintenance"]
 
@@ -13,15 +14,15 @@ def stations_menu(stations, users):
     """Show the stations sub-menu and keep it running until the user goes back."""
     print(ascii_art.STATIONS)
     while True:
-
         
         print("\n  === STATIONS MENU ===")
         print("\n  1. View All Stations")
         print("  2. Filter by Status")
-        print("  3. Sort by Station ID")
-        print("  4. Add New Station")
-        print("  5. Update Station Status")
-        print("  6. Update Hardware Specs")
+        print("  3. Filter by ID")
+        print("  4. Sort by Station ID")
+        print("  5. Add New Station")
+        print("  6. Update Station Status")
+        print("  7. Update Hardware Specs")
         print("  0. Back to Main Menu")
 
         choice = input("\n  Enter your choice: ").strip()
@@ -31,13 +32,16 @@ def stations_menu(stations, users):
         elif choice == "2":
             filter_stations_by_status(stations)
         elif choice == "3":
-            sort_stations(stations)
+            filter_stations_by_id(stations)
         elif choice == "4":
-            stations = add_station(stations)
+            sort_stations(stations)
         elif choice == "5":
-            stations = update_station_status(stations)
+            stations = add_station(stations)
         elif choice == "6":
+            stations = update_station_status(stations)
+        elif choice == "7":
             stations = update_hardware_specs(stations)
+            
         elif choice == "0":
             break  
         else:
@@ -107,6 +111,36 @@ def filter_stations_by_status(stations):
   
     if found == False:
         print(f"  No stations with status '{target}'.")
+
+
+def filter_stations_by_id(stations):
+    """Show only a station that matches a chosen ID."""
+
+    view_all_stations(stations)
+
+    choice = input("\n  Enter station's ID: ").strip().upper()
+    found = False
+    station_report = """"""
+
+    for sid, s in stations.items():
+        if sid == choice:
+            found = True
+            hw = s["hardware"]
+            title = f"Station {sid}"
+            station_report += f"""
+{title}
+{'-' * len(title)}
+Name: {s['name']}
+Status: {s['status']}
+OS: {hw['os']}
+RAM: {hw['ram']}
+User: {s['assigned_user']}
+"""
+
+    if found == False:
+        print(f"  No stations with id '{choice}'.")
+
+    print(station_report)
 
 
 def sort_stations(stations):
