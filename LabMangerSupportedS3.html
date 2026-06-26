@@ -1,0 +1,1078 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Lab Station Monitor</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:       #080808;
+    --bg1:      #0d0d0d;
+    --bg2:      #141414;
+    --border:   #1e1e1e;
+    --border2:  #2a2a2a;
+    --text:     #e0e0e0;
+    --muted:    #666;
+    --green:    #4ade80;
+    --green-bg: #0d2b1a;
+    --green-bd: #14532d;
+    --purple:   #818cf8;
+    --purple-bg:#1a1a2e;
+    --orange:   #f97316;
+    --orange-bg:#2b1a0d;
+    --red:      #f87171;
+    --red-bg:   #2b0d0d;
+    --red-bd:   #7f1d1d;
+    --yellow:   #fbbf24;
+    --yellow-bg:#1a1500;
+    --mono: 'JetBrains Mono', 'Courier New', monospace;
+  }
+
+  body { background: var(--bg); color: var(--text); font-family: var(--mono); min-height: 100vh; }
+
+  /* ── TOP BAR ── */
+  #topbar {
+    background: var(--bg1); border-bottom: 1px solid var(--border);
+    padding: 0 28px; height: 54px; display: flex; align-items: center; justify-content: space-between;
+  }
+  #topbar .brand { display: flex; align-items: center; gap: 12px; }
+  #topbar .brand .logo { color: var(--green); font-size: 20px; }
+  #topbar .brand .title { color: #f0f0f0; font-weight: 700; font-size: 15px; }
+  #topbar .brand .sub { color: #333; font-size: 12px; }
+  #topbar .actions { display: flex; gap: 10px; }
+
+  /* ── NAV ── */
+  #nav {
+    background: var(--bg1); border-bottom: 1px solid #1a1a1a;
+    padding: 0 28px; display: flex;
+  }
+  .nav-btn {
+    background: none; border: none; border-bottom: 2px solid transparent;
+    padding: 14px 18px; cursor: pointer; font-size: 13px; font-family: var(--mono);
+    font-weight: 600; color: var(--muted); transition: color .15s;
+  }
+  .nav-btn:hover { color: #aaa; }
+  .nav-btn.active { color: var(--green); border-bottom-color: var(--green); }
+
+  /* ── MAIN ── */
+  #main { padding: 28px; max-width: 1200px; margin: 0 auto; }
+
+  .section-label { color: var(--muted); font-size: 11px; letter-spacing: 1px; margin-bottom: 18px; }
+
+  /* ── CARDS ── */
+  .card {
+    background: var(--bg1); border: 1px solid var(--border);
+    border-radius: 12px; padding: 20px 24px;
+  }
+  .card-label { color: var(--green); font-size: 11px; letter-spacing: 1px; margin-bottom: 16px; }
+
+  /* ── STAT CARDS ── */
+  .stat-row { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 28px; }
+  .stat-card {
+    background: var(--bg1); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 20px; min-width: 110px;
+  }
+  .stat-card .slabel { color: var(--muted); font-size: 11px; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 6px; }
+  .stat-card .svalue { color: #f0f0f0; font-size: 28px; font-weight: 700; line-height: 1; }
+  .stat-card .ssub { color: #444; font-size: 12px; margin-top: 4px; }
+
+  /* ── PILLS ── */
+  .pill {
+    display: inline-flex; align-items: center; gap: 5px;
+    border-radius: 6px; padding: 2px 10px; font-size: 12px; font-weight: 600;
+  }
+  .pill-dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+  .pill-available  { background: var(--green-bg); color: var(--green);  border: 1px solid #22c55e44; }
+  .pill-available .pill-dot  { background: #22c55e; }
+  .pill-occupied   { background: var(--purple-bg); color: var(--purple); border: 1px solid #6366f144; }
+  .pill-occupied .pill-dot   { background: #6366f1; }
+  .pill-maintenance{ background: var(--orange-bg); color: var(--orange); border: 1px solid #f9731644; }
+  .pill-maintenance .pill-dot{ background: var(--orange); }
+
+  .sev-badge { display: inline-block; border-radius: 6px; padding: 2px 10px; font-size: 12px; font-weight: 600; }
+  .sev-high   { background: var(--red-bg);    color: var(--red);    border: 1px solid #7f1d1d; }
+  .sev-medium { background: var(--yellow-bg); color: var(--yellow); border: 1px solid #713f12; }
+  .sev-low    { background: var(--green-bg);  color: var(--green);  border: 1px solid #14532d; }
+
+  /* ── BUTTONS ── */
+  .btn { border-radius: 7px; padding: 8px 18px; font-size: 13px; font-family: var(--mono); cursor: pointer; font-weight: 600; transition: opacity .15s; border: 1px solid; }
+  .btn:hover { opacity: .8; }
+  .btn-primary { background: var(--green-bg); border-color: var(--green); color: var(--green); }
+  .btn-danger  { background: var(--red-bg);   border-color: var(--red);   color: var(--red); }
+  .btn-ghost   { background: none; border-color: var(--border2); color: var(--muted); }
+  .btn-sm { padding: 5px 12px; font-size: 12px; }
+
+  /* ── INPUTS ── */
+  input, select, textarea {
+    background: var(--bg); border: 1px solid var(--border2); border-radius: 7px;
+    color: var(--text); padding: 8px 12px; font-size: 14px; font-family: var(--mono);
+    width: 100%; outline: none;
+  }
+  input:focus, select:focus, textarea:focus { border-color: var(--green); }
+  textarea { resize: vertical; }
+
+  /* ── ROWS ── */
+  .row-item {
+    background: var(--bg1); border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px 18px;
+    display: flex; align-items: center; gap: 14px; margin-bottom: 8px;
+  }
+  .row-item.critical { border-color: var(--red-bd); }
+
+  /* ── FILTERS ── */
+  .filter-row { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+  .filter-row input { width: 220px; }
+  .filter-row select { width: 160px; }
+
+  /* ── BAR ── */
+  .bar-wrap { height: 6px; background: #1a1a1a; border-radius: 3px; overflow: hidden; margin-top: 5px; }
+  .bar-fill { height: 100%; border-radius: 3px; transition: width .4s; }
+
+  /* ── STATION GRID ── */
+  .station-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px,1fr)); gap: 10px; }
+  .sg-card { border-radius: 8px; padding: 12px 14px; cursor: pointer; }
+  .sg-card .sg-id { font-weight: 700; font-size: 13px; }
+  .sg-card .sg-name { font-size: 11px; color: #888; margin-top: 2px; }
+  .sg-card .sg-st { font-size: 11px; margin-top: 6px; opacity: .8; }
+  .sg-card .sg-user { font-size: 11px; color: #aaa; }
+
+  /* ── MODAL ── */
+  #modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,.78); z-index: 100;
+    align-items: center; justify-content: center;
+  }
+  #modal-overlay.open { display: flex; }
+  #modal-box {
+    background: #111; border: 1px solid #333; border-radius: 14px;
+    padding: 28px 32px; min-width: 400px; max-width: 540px; width: 90vw;
+    max-height: 80vh; overflow-y: auto;
+  }
+  .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+  .modal-title { color: #f0f0f0; font-weight: 700; font-size: 17px; }
+  .modal-close { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 24px; line-height: 1; }
+  .field { margin-bottom: 14px; }
+  .field label { color: #777; font-size: 12px; text-transform: uppercase; letter-spacing: .8px; display: block; margin-bottom: 5px; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+
+  /* ── TOAST ── */
+  #toast {
+    display: none; position: fixed; bottom: 28px; right: 28px;
+    border-radius: 10px; padding: 12px 20px; font-size: 13px;
+    z-index: 200; animation: fadeUp .2s ease;
+  }
+  #toast.show { display: block; }
+  #toast.success { background: var(--green-bg); border: 1px solid var(--green-bd); color: var(--green); }
+  #toast.error   { background: var(--red-bg);   border: 1px solid var(--red-bd);   color: var(--red); }
+
+  /* ── TABLE ── */
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { color: var(--muted); text-align: left; padding: 6px 12px 12px 0; font-weight: 600; font-size: 11px; letter-spacing: .5px; text-transform: uppercase; }
+  td { padding: 10px 12px 10px 0; border-top: 1px solid #1a1a1a; color: #aaa; }
+  td:first-child { color: #f0f0f0; font-weight: 600; }
+
+  /* ── REPORT ROW ── */
+  .report-kv { display: grid; grid-template-columns: 1fr 1fr; }
+  .report-kv div { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #1a1a1a; }
+  .report-kv .k { color: var(--muted); font-size: 13px; }
+  .report-kv .v { color: #f0f0f0; font-size: 13px; font-weight: 600; }
+
+  /* ── EMPTY ── */
+  .empty-state { text-align: center; padding: 80px 0; }
+  .empty-state .icon { color: #333; font-size: 48px; margin-bottom: 16px; }
+  .empty-state .msg  { color: #555; font-size: 15px; margin-bottom: 8px; }
+  .empty-state .sub  { color: #444; font-size: 13px; margin-bottom: 28px; }
+
+  /* ── AVATAR ── */
+  .avatar {
+    width: 38px; height: 38px; border-radius: 50%;
+    background: var(--purple-bg); display: flex; align-items: center;
+    justify-content: center; font-size: 18px; flex-shrink: 0;
+  }
+
+  @keyframes fadeUp { from { opacity:0; transform: translateY(8px); } to { opacity:1; transform: translateY(0); } }
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg1); }
+  ::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<div id="topbar">
+  <div class="brand">
+    <span class="logo">⬡</span>
+    <span class="title">LAB MONITOR</span>
+    <span class="sub">// DevOps Bootcamp</span>
+  </div>
+  <div class="actions" id="topbar-actions"></div>
+</div>
+
+<div id="nav">
+  <button class="nav-btn active" onclick="switchTab('dashboard')">Dashboard</button>
+  <button class="nav-btn" onclick="switchTab('stations')">Stations</button>
+  <button class="nav-btn" onclick="switchTab('users')">Users</button>
+  <button class="nav-btn" id="nav-issues-btn" onclick="switchTab('issues')">Issues</button>
+  <button class="nav-btn" onclick="switchTab('reports')">Reports</button>
+</div>
+
+<div id="main"></div>
+
+<div id="modal-overlay">
+  <div id="modal-box">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-title"></div>
+      <button class="modal-close" onclick="closeModal()">×</button>
+    </div>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════
+//  DATA
+// ═══════════════════════════════════════════
+const DUMMY = {
+  STATIONS: [
+    {id:"PC-01",name:"Station Aleph",    status:"available",  assigned_user:null,  hardware:{os:"Windows 11",   ram:"16GB", cpu:"Intel i7-12700",    storage:"512GB SSD"}},
+    {id:"PC-02",name:"Station Bet",      status:"occupied",   assigned_user:"Yossi",hardware:{os:"Windows 11",   ram:"16GB", cpu:"Intel i7-12700",    storage:"512GB SSD"}},
+    {id:"PC-03",name:"Station Gimel",    status:"maintenance",assigned_user:null,  hardware:{os:"Ubuntu 22.04", ram:"32GB", cpu:"AMD Ryzen 9 5900X",  storage:"1TB NVMe"}},
+    {id:"PC-04",name:"Linux Dev Station",status:"available",  assigned_user:null,  hardware:{os:"Ubuntu 22.04", ram:"32GB", cpu:"AMD Ryzen 7 5800X",  storage:"1TB NVMe"}},
+    {id:"PC-05",name:"Instructor Station",status:"occupied",  assigned_user:"Meirav",hardware:{os:"macOS Ventura",ram:"64GB",cpu:"Apple M2 Pro",       storage:"2TB SSD"}},
+    {id:"PC-06",name:"Test Node A",      status:"available",  assigned_user:null,  hardware:{os:"Windows 10",   ram:"8GB",  cpu:"Intel i5-10400",     storage:"256GB SSD"}},
+    {id:"PC-07",name:"Test Node B",      status:"available",  assigned_user:null,  hardware:{os:"Windows 10",   ram:"8GB",  cpu:"Intel i5-10400",     storage:"256GB SSD"}},
+    {id:"PC-08",name:"DevOps Lab Node",  status:"occupied",   assigned_user:"Avi", hardware:{os:"Ubuntu 22.04", ram:"32GB", cpu:"Intel Xeon E-2278G", storage:"2TB HDD"}},
+  ],
+  USERS: [
+    {id:1,name:"Yossi", role:"Student",    station:"PC-02"},
+    {id:2,name:"Avi",   role:"Student",    station:"PC-08"},
+    {id:3,name:"Meirav",role:"Instructor", station:"PC-05"},
+    {id:4,name:"Noa",   role:"Technician", station:null},
+    {id:5,name:"Idan",  role:"Student",    station:null},
+    {id:6,name:"Shira", role:"Student",    station:null},
+    {id:7,name:"Rotem", role:"Student",    station:null},
+    {id:8,name:"Tal",   role:"Student",    station:null},
+  ],
+  ISSUES: [
+    {id:1,station_id:"PC-03",description:"Kernel panic on boot - needs OS reinstall",        severity:"high",  state:"open",    resolution_note:null},
+    {id:2,station_id:"PC-06",description:"Keyboard is missing two keycaps",                  severity:"low",   state:"open",    resolution_note:null},
+    {id:3,station_id:"PC-01",description:"Mouse scroll wheel not working",                   severity:"low",   state:"resolved",resolution_note:"Replaced with spare mouse from storage room."},
+    {id:4,station_id:"PC-08",description:"Disk errors showing up in logs - HDD might be failing",severity:"high",state:"open", resolution_note:null},
+    {id:5,station_id:"PC-07",description:"Monitor screen flickers sometimes",                severity:"medium",state:"open",   resolution_note:null},
+  ]
+};
+
+let stations = {}; // { "PC-01": {...} }
+let users    = [];
+let issues   = [];
+let currentTab = "dashboard";
+
+// ═══════════════════════════════════════════
+//  HELPERS
+// ═══════════════════════════════════════════
+const $ = id => document.getElementById(id);
+
+function showToast(msg, type="success") {
+  const t = $("toast");
+  t.textContent = (type === "success" ? "✓ " : "✗ ") + msg;
+  t.className = "show " + type;
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.className = "", 2800);
+}
+
+function openModal(title, bodyHTML) {
+  $("modal-title").textContent = title;
+  $("modal-body").innerHTML = bodyHTML;
+  $("modal-overlay").classList.add("open");
+}
+function closeModal() { $("modal-overlay").classList.remove("open"); }
+$("modal-overlay").addEventListener("click", e => { if (e.target === $("modal-overlay")) closeModal(); });
+
+function pill(status) {
+  return `<span class="pill pill-${status}"><span class="pill-dot"></span>${status}</span>`;
+}
+function sevBadge(sev) {
+  return `<span class="sev-badge sev-${sev}">${sev}</span>`;
+}
+
+function getStats() {
+  const vals = Object.values(stations);
+  const available   = vals.filter(s=>s.status==="available").length;
+  const occupied    = vals.filter(s=>s.status==="occupied").length;
+  const maintenance = vals.filter(s=>s.status==="maintenance").length;
+  const openIssues  = issues.filter(i=>i.state==="open").length;
+  const highOpen    = issues.filter(i=>i.state==="open"&&i.severity==="high").length;
+  const utilization = vals.length ? Math.round((occupied/vals.length)*100) : 0;
+  return {total:vals.length,available,occupied,maintenance,openIssues,highOpen,utilization};
+}
+
+function nextUserId()  { return users.length  ? Math.max(...users.map(u=>u.id))+1  : 1; }
+function nextIssueId() { return issues.length ? Math.max(...issues.map(i=>i.id))+1 : 1; }
+
+const OS_ICON = {"Windows 11":"🪟","Windows 10":"🪟","Ubuntu 22.04":"🐧","macOS Ventura":"🍎"};
+const ROLE_ICON = {Student:"🎓",Instructor:"👩‍💻",Technician:"🔧"};
+
+function updateNavIssues() {
+  const open = issues.filter(i=>i.state==="open").length;
+  $("nav-issues-btn").textContent = open > 0 ? `Issues (${open})` : "Issues";
+}
+
+// ═══════════════════════════════════════════
+// AUTO-LOAD FROM MOUNTED VOLUME (Docker)
+// ═══════════════════════════════════════════
+async function autoLoadFromServer() {
+  try {
+    const res = await fetch('/data/lab_data.json');
+    if (!res.ok) return; // silently skip if file not found
+    const parsed = await res.json();
+    if (!parsed.STATIONS || !parsed.USERS || !parsed.ISSUES) return;
+    stations = {};
+    parsed.STATIONS.forEach(s => {
+      if (!s.id) return;
+      const sid = String(s.id).toUpperCase();
+      stations[sid] = {
+        name: s.name || sid,
+        status: ["available","occupied","maintenance"].includes(s.status) ? s.status : "available",
+        assigned_user: s.assigned_user || null,
+        hardware: {
+          os: (s.hardware||{}).os || "Unknown",
+          ram: (s.hardware||{}).ram || "Unknown",
+          cpu: (s.hardware||{}).cpu || "Unknown",
+          storage: (s.hardware||{}).storage || "Unknown",
+        }
+      };
+    });
+    users = parsed.USERS.map(u => ({
+      id: u.id || nextUserId(),
+      name: u.name || "Unknown",
+      role: u.role || "Student",
+      station: u.station || null,
+    }));
+    issues = parsed.ISSUES.map(i => ({
+      id: i.id || nextIssueId(),
+      station_id: String(i.station_id||"").toUpperCase(),
+      description: i.description || "",
+      severity: ["high","medium","low"].includes(i.severity) ? i.severity : "low",
+      state: ["open","resolved"].includes(i.state) ? i.state : "open",
+      resolution_note: i.resolution_note || null,
+    }));
+    showToast(`Auto-loaded ${Object.keys(stations).length} stations from data volume`);
+    render();
+  } catch(e) {
+    // No data file available — user can load manually
+  }
+}
+
+// ═══════════════════════════════════════════
+//  LOAD DUMMY DATA
+// ═══════════════════════════════════════════
+function loadDummy() {
+  stations = {};
+  DUMMY.STATIONS.forEach(s => {
+    stations[s.id] = {name:s.name,status:s.status,assigned_user:s.assigned_user,hardware:{...s.hardware}};
+  });
+  users  = DUMMY.USERS.map(u=>({...u}));
+  issues = DUMMY.ISSUES.map(i=>({...i}));
+  showToast("Sample data loaded — 8 stations, 8 users, 5 issues");
+  render();
+}
+
+// ═══════════════════════════════════════════
+//  LOAD MODAL
+// ═══════════════════════════════════════════
+function openLoadModal() {
+  openModal("// load_data", `
+    <div style="display:flex;flex-direction:column;gap:12px">
+
+      <div style="padding:18px 20px;background:var(--green-bg);border:1px solid var(--green-bd);border-radius:10px;cursor:pointer"
+           onclick="loadDummy();closeModal()"
+           onmouseover="this.style.opacity='.8'" onmouseout="this.style.opacity='1'">
+        <div style="color:var(--green);font-weight:700;font-size:14px;margin-bottom:4px">⬡ Load Demo Data</div>
+        <div style="color:#4ade8099;font-size:12px">8 stations · 8 users · 5 issues — instant preview</div>
+      </div>
+
+      <div style="padding:18px 20px;background:var(--purple-bg);border:1px solid #6366f144;border-radius:10px">
+        <div style="color:var(--purple);font-weight:700;font-size:14px;margin-bottom:4px">📂 Load Real Data (JSON)</div>
+        <div style="color:#818cf899;font-size:12px;margin-bottom:14px">Upload a JSON file or paste JSON below. Must have STATIONS, USERS and ISSUES keys.</div>
+
+        <div style="display:flex;gap:10px;margin-bottom:10px;align-items:center">
+          <label style="cursor:pointer">
+            <input type="file" id="json-file-input" accept=".json,application/json" style="display:none" onchange="handleFileSelect(event)"/>
+            <span class="btn btn-ghost btn-sm" onclick="document.getElementById('json-file-input').click()">Choose file…</span>
+          </label>
+          <span id="file-chosen" style="color:var(--muted);font-size:12px">No file chosen</span>
+        </div>
+
+        <div style="color:var(--muted);font-size:11px;letter-spacing:.8px;margin-bottom:6px;text-transform:uppercase">— or paste JSON —</div>
+        <textarea id="json-paste" rows="6" placeholder='{"STATIONS":[...],"USERS":[...],"ISSUES":[]}'
+          style="font-size:12px;color:#aaa" oninput="clearFileChoice()"></textarea>
+
+        <div id="json-error" style="display:none;color:var(--red);font-size:12px;margin-top:8px"></div>
+
+        <div class="modal-actions" style="margin-top:14px">
+          <button class="btn btn-primary" onclick="loadFromJSON()">Import JSON</button>
+          <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+        </div>
+      </div>
+
+    </div>`);
+}
+
+function handleFileSelect(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  $("file-chosen").textContent = file.name;
+  $("file-chosen").style.color = "var(--green)";
+  const reader = new FileReader();
+  reader.onload = ev => {
+    $("json-paste").value = ev.target.result;
+  };
+  reader.readAsText(file);
+}
+
+function clearFileChoice() {
+  const fc = $("file-chosen");
+  if (fc) { fc.textContent = "No file chosen"; fc.style.color = "var(--muted)"; }
+}
+
+function loadFromJSON() {
+  const raw = ($("json-paste")||{value:""}).value.trim();
+  const errEl = $("json-error");
+  const showErr = msg => { errEl.style.display="block"; errEl.textContent = "✗ " + msg; };
+
+  if (!raw) { showErr("Paste or choose a JSON file first."); return; }
+
+  let parsed;
+  try { parsed = JSON.parse(raw); }
+  catch(e) { showErr("Invalid JSON — " + e.message); return; }
+
+  if (!parsed.STATIONS || !Array.isArray(parsed.STATIONS)) { showErr('Missing or invalid "STATIONS" array.'); return; }
+  if (!parsed.USERS    || !Array.isArray(parsed.USERS))    { showErr('Missing or invalid "USERS" array.'); return; }
+  if (!parsed.ISSUES   || !Array.isArray(parsed.ISSUES))   { showErr('Missing or invalid "ISSUES" array.'); return; }
+
+  // Load stations
+  stations = {};
+  let skipped = 0;
+  parsed.STATIONS.forEach(s => {
+    if (!s.id) { skipped++; return; }
+    const sid = String(s.id).toUpperCase();
+    stations[sid] = {
+      name:          s.name          || sid,
+      status:        ["available","occupied","maintenance"].includes(s.status) ? s.status : "available",
+      assigned_user: s.assigned_user || null,
+      hardware: {
+        os:      (s.hardware||{}).os      || "Unknown",
+        ram:     (s.hardware||{}).ram     || "Unknown",
+        cpu:     (s.hardware||{}).cpu     || "Unknown",
+        storage: (s.hardware||{}).storage || "Unknown",
+      }
+    };
+  });
+
+  users  = parsed.USERS.map(u => ({
+    id:      u.id      || nextUserId(),
+    name:    u.name    || "Unknown",
+    role:    u.role    || "Student",
+    station: u.station || null,
+  }));
+
+  issues = parsed.ISSUES.map(i => ({
+    id:              i.id              || nextIssueId(),
+    station_id:      String(i.station_id||"").toUpperCase(),
+    description:     i.description     || "",
+    severity:        ["high","medium","low"].includes(i.severity) ? i.severity : "low",
+    state:           ["open","resolved"].includes(i.state) ? i.state : "open",
+    resolution_note: i.resolution_note || null,
+  }));
+
+  const msg = `Loaded ${Object.keys(stations).length} stations, ${users.length} users, ${issues.length} issues` +
+              (skipped ? ` (${skipped} stations skipped — missing id)` : "");
+  showToast(msg);
+  closeModal();
+  render();
+}
+
+function confirmClear() {
+  openModal("// clear_data", `
+    <div style="color:#aaa;font-size:14px;margin-bottom:20px">
+      This will remove all stations, users and issues from memory. Exported JSON will not be affected.
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-danger" onclick="clearAll()">Clear Everything</button>
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+    </div>`);
+}
+
+function clearAll() {
+  stations = {}; users = []; issues = [];
+  showToast("All data cleared");
+  closeModal(); render();
+}
+
+// ═══════════════════════════════════════════
+//  EXPORT
+// ═══════════════════════════════════════════
+function exportData() {
+  const payload = {
+    STATIONS: Object.entries(stations).map(([id,s])=>({id,...s})),
+    USERS: users,
+    ISSUES: issues,
+  };
+  const blob = new Blob([JSON.stringify(payload,null,2)],{type:"application/json"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href=url; a.download="lab_export.json"; a.click();
+  URL.revokeObjectURL(url);
+  showToast("Exported lab_export.json");
+}
+
+// ═══════════════════════════════════════════
+//  ROUTING
+// ═══════════════════════════════════════════
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
+  document.querySelectorAll(".nav-btn").forEach(b => {
+    if (b.getAttribute("onclick") === `switchTab('${tab}')`) b.classList.add("active");
+  });
+  render();
+}
+
+function render() {
+  updateNavIssues();
+  updateTopbar();
+  const main = $("main");
+  if (currentTab === "dashboard")  main.innerHTML = renderDashboard();
+  if (currentTab === "stations")   main.innerHTML = renderStations();
+  if (currentTab === "users")      main.innerHTML = renderUsers();
+  if (currentTab === "issues")     main.innerHTML = renderIssues();
+  if (currentTab === "reports")    main.innerHTML = renderReports();
+}
+
+function updateTopbar() {
+  const s = getStats();
+  $("topbar-actions").innerHTML = s.total === 0
+    ? `<button class="btn btn-primary btn-sm" onclick="openLoadModal()">⬆ Load Data</button>`
+    : `<button class="btn btn-ghost btn-sm" onclick="exportData()">↓ Export JSON</button>
+       <button class="btn btn-danger btn-sm" onclick="confirmClear()">✕ Clear</button>`;
+}
+
+// ═══════════════════════════════════════════
+//  DASHBOARD
+// ═══════════════════════════════════════════
+function renderDashboard() {
+  const s = getStats();
+  if (s.total === 0) return `
+    <div class="empty-state">
+      <div class="icon">⬡</div>
+      <div class="msg">No data loaded yet</div>
+      <div class="sub">Load the sample dataset or import your own JSON file</div>
+      <button class="btn btn-primary" onclick="openLoadModal()">⬆ Load Data</button>
+    </div>`;
+
+  const criticalIssues = issues.filter(i=>i.state==="open"&&i.severity==="high");
+
+  const sgCards = Object.entries(stations).sort(([a],[b])=>a.localeCompare(b)).map(([sid,st])=>{
+    const colors = {available:["#0d2b1a","#4ade80","#22c55e33"],occupied:["#1a1a2e","#818cf8","#6366f133"],maintenance:["#2b1a0d","#f97316","#f9731633"]};
+    const [bg,col,bd]=colors[st.status]||colors.available;
+    return `<div class="sg-card" style="background:${bg};border:1px solid ${bd};" onclick="switchTab('stations')">
+      <div class="sg-id" style="color:${col}">${sid}</div>
+      <div class="sg-name">${st.name.slice(0,18)}</div>
+      <div class="sg-st" style="color:${col}">${st.status}</div>
+      ${st.assigned_user?`<div class="sg-user">→ ${st.assigned_user}</div>`:""}
+    </div>`;
+  }).join("");
+
+  const bars = [["available","#4ade80"],["occupied","#6366f1"],["maintenance","#f97316"]].map(([st,col])=>{
+    const count = Object.values(stations).filter(x=>x.status===st).length;
+    const pct = s.total ? Math.round((count/s.total)*100) : 0;
+    return `<div style="margin-bottom:14px">
+      <div style="display:flex;justify-content:space-between;margin-bottom:5px">
+        <span style="color:${col};font-size:13px">${st}</span>
+        <span style="color:var(--muted);font-size:13px">${count} / ${s.total}</span>
+      </div>
+      <div class="bar-wrap"><div class="bar-fill" style="width:${pct}%;background:${col}"></div></div>
+    </div>`;
+  }).join("");
+
+  const critHTML = criticalIssues.length === 0
+    ? `<div style="color:var(--green);font-size:13px">✓ No critical issues</div>`
+    : criticalIssues.map(i=>`
+      <div style="margin-bottom:10px;padding:10px 14px;background:var(--red-bg);border:1px solid var(--red-bd);border-radius:8px">
+        <div style="color:var(--red);font-size:12px;margin-bottom:3px">#${i.id} · ${i.station_id}</div>
+        <div style="font-size:13px">${i.description.slice(0,60)}${i.description.length>60?"...":""}</div>
+      </div>`).join("");
+
+  return `
+  <div class="section-label">// OVERVIEW</div>
+  <div class="stat-row">
+    <div class="stat-card"><div class="slabel">Stations</div><div class="svalue">${s.total}</div></div>
+    <div class="stat-card"><div class="slabel">Available</div><div class="svalue">${s.available}</div><div class="ssub">ready to use</div></div>
+    <div class="stat-card"><div class="slabel">Occupied</div><div class="svalue">${s.occupied}</div><div class="ssub">${s.utilization}% utilization</div></div>
+    <div class="stat-card"><div class="slabel">Maintenance</div><div class="svalue">${s.maintenance}</div></div>
+    <div class="stat-card"><div class="slabel">Users</div><div class="svalue">${users.length}</div></div>
+    <div class="stat-card"><div class="slabel">Open Issues</div><div class="svalue">${s.openIssues}</div><div class="ssub">${s.highOpen>0?s.highOpen+" critical":"all clear"}</div></div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px">
+    <div class="card"><div class="card-label">// STATION_STATUS</div>${bars}</div>
+    <div class="card"><div class="card-label">// CRITICAL_ISSUES</div>${critHTML}</div>
+  </div>
+  <div class="card"><div class="card-label">// STATION_GRID</div>
+    <div class="station-grid">${sgCards}</div>
+  </div>`;
+}
+
+// ═══════════════════════════════════════════
+//  STATIONS
+// ═══════════════════════════════════════════
+function renderStations() {
+  const rows = Object.entries(stations).sort(([a],[b])=>a.localeCompare(b)).map(([sid,s])=>`
+    <div class="row-item">
+      <div style="min-width:72px">
+        <div style="color:#f0f0f0;font-weight:700;font-size:14px">${sid}</div>
+        <div style="color:var(--muted);font-size:11px;margin-top:2px">${OS_ICON[s.hardware.os]||"💻"} ${s.hardware.os}</div>
+      </div>
+      <div style="flex:1">
+        <div style="color:#ccc;font-size:14px">${s.name}</div>
+        <div style="color:var(--muted);font-size:12px;margin-top:2px">${s.hardware.cpu} · ${s.hardware.ram} · ${s.hardware.storage}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        ${pill(s.status)}
+        ${s.assigned_user?`<span style="color:var(--muted);font-size:13px">→ ${s.assigned_user}</span>`:""}
+        <button class="btn btn-ghost btn-sm" onclick="openEditStation('${sid}')">Edit</button>
+      </div>
+    </div>`).join("") || `<div style="color:var(--muted);padding:20px 0">No stations yet.</div>`;
+
+  return `
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+    <div class="section-label">// STATIONS</div>
+    <button class="btn btn-primary btn-sm" onclick="openAddStation()">+ Add Station</button>
+  </div>
+  <div class="filter-row">
+    <input id="stn-search" placeholder="Search ID or name..." oninput="filterStations()" style="width:220px"/>
+    <select id="stn-filter" onchange="filterStations()" style="width:160px">
+      <option value="all">All Statuses</option>
+      <option value="available">Available</option>
+      <option value="occupied">Occupied</option>
+      <option value="maintenance">Maintenance</option>
+    </select>
+  </div>
+  <div id="station-list">${rows}</div>`;
+}
+
+function filterStations() {
+  const q = ($("stn-search")||{value:""}).value.toLowerCase();
+  const f = ($("stn-filter")||{value:"all"}).value;
+  const list = $("station-list");
+  if (!list) return;
+  const rows = Object.entries(stations).sort(([a],[b])=>a.localeCompare(b))
+    .filter(([sid,s])=>{
+      const matchQ = !q || sid.toLowerCase().includes(q) || s.name.toLowerCase().includes(q);
+      const matchF = f==="all" || s.status===f;
+      return matchQ && matchF;
+    }).map(([sid,s])=>`
+    <div class="row-item">
+      <div style="min-width:72px">
+        <div style="color:#f0f0f0;font-weight:700;font-size:14px">${sid}</div>
+        <div style="color:var(--muted);font-size:11px;margin-top:2px">${OS_ICON[s.hardware.os]||"💻"} ${s.hardware.os}</div>
+      </div>
+      <div style="flex:1">
+        <div style="color:#ccc;font-size:14px">${s.name}</div>
+        <div style="color:var(--muted);font-size:12px;margin-top:2px">${s.hardware.cpu} · ${s.hardware.ram} · ${s.hardware.storage}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        ${pill(s.status)}
+        ${s.assigned_user?`<span style="color:var(--muted);font-size:13px">→ ${s.assigned_user}</span>`:""}
+        <button class="btn btn-ghost btn-sm" onclick="openEditStation('${sid}')">Edit</button>
+      </div>
+    </div>`).join("") || `<div style="color:var(--muted);padding:20px 0">No matching stations.</div>`;
+  list.innerHTML = rows;
+}
+
+function openAddStation() {
+  openModal("// add_station", `
+    <div class="field"><label>Station ID *</label><input id="f-sid" placeholder="PC-09" /></div>
+    <div class="field"><label>Name *</label><input id="f-sname" placeholder="Lab Station Alpha" /></div>
+    <div class="field"><label>Status</label>
+      <select id="f-sstatus"><option value="available">available</option><option value="occupied">occupied</option><option value="maintenance">maintenance</option></select>
+    </div>
+    <div class="grid2">
+      <div class="field"><label>OS</label><input id="f-os" value="Windows 11"/></div>
+      <div class="field"><label>RAM</label><input id="f-ram" value="16GB"/></div>
+      <div class="field"><label>CPU *</label><input id="f-cpu" placeholder="Intel i7-12700"/></div>
+      <div class="field"><label>Storage</label><input id="f-storage" value="512GB SSD"/></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" onclick="saveAddStation()">Add Station</button>
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+    </div>`);
+}
+
+function saveAddStation() {
+  const sid  = $("f-sid").value.trim().toUpperCase();
+  const name = $("f-sname").value.trim();
+  const cpu  = $("f-cpu").value.trim();
+  if (!sid||!name||!cpu) { showToast("Fill all required fields","error"); return; }
+  if (stations[sid])     { showToast("Station ID already exists","error"); return; }
+  stations[sid] = {
+    name, status:$("f-sstatus").value, assigned_user:null,
+    hardware:{os:$("f-os").value||"Unknown",ram:$("f-ram").value||"Unknown",cpu,storage:$("f-storage").value||"Unknown"}
+  };
+  showToast(`Station ${sid} added`);
+  closeModal(); render();
+}
+
+function openEditStation(sid) {
+  const s = stations[sid];
+  openModal(`// edit_station [${sid}]`, `
+    <div style="color:#aaa;font-size:14px;margin-bottom:16px">${s.name}</div>
+    <div class="field"><label>Status</label>
+      <select id="f-est"><option value="available" ${s.status==="available"?"selected":""}>available</option><option value="occupied" ${s.status==="occupied"?"selected":""}>occupied</option><option value="maintenance" ${s.status==="maintenance"?"selected":""}>maintenance</option></select>
+    </div>
+    <div class="grid2">
+      <div class="field"><label>OS</label><input id="f-eos" value="${s.hardware.os}"/></div>
+      <div class="field"><label>RAM</label><input id="f-eram" value="${s.hardware.ram}"/></div>
+      <div class="field"><label>CPU</label><input id="f-ecpu" value="${s.hardware.cpu}"/></div>
+      <div class="field"><label>Storage</label><input id="f-estorage" value="${s.hardware.storage}"/></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" onclick="saveEditStation('${sid}')">Save Changes</button>
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+    </div>`);
+}
+
+function saveEditStation(sid) {
+  const newStatus = $("f-est").value;
+  stations[sid].status  = newStatus;
+  stations[sid].hardware.os      = $("f-eos").value;
+  stations[sid].hardware.ram     = $("f-eram").value;
+  stations[sid].hardware.cpu     = $("f-ecpu").value;
+  stations[sid].hardware.storage = $("f-estorage").value;
+  if (newStatus !== "occupied") stations[sid].assigned_user = null;
+  showToast(`Station ${sid} updated`);
+  closeModal(); render();
+}
+
+// ═══════════════════════════════════════════
+//  USERS
+// ═══════════════════════════════════════════
+function renderUsers() {
+  const q = ""; // populated on input
+  const rows = users.map(u=>{
+    const avail = Object.entries(stations).filter(([,s])=>s.status==="available");
+    const assignBtn = !u.station && avail.length>0
+      ? `<button class="btn btn-primary btn-sm" onclick="openAssignUser(${u.id})">Assign</button>`
+      : u.station
+        ? `<span style="color:var(--purple);font-size:13px;background:var(--purple-bg);padding:3px 10px;border-radius:6px">→ ${u.station}</span>
+           <button class="btn btn-ghost btn-sm" onclick="releaseUser(${u.id})">Release</button>`
+        : "";
+    return `
+    <div class="row-item" id="urow-${u.id}">
+      <div class="avatar">${ROLE_ICON[u.role]||"👤"}</div>
+      <div style="flex:1">
+        <div style="color:#f0f0f0;font-weight:600;font-size:14px">${u.name}</div>
+        <div style="color:var(--muted);font-size:12px;margin-top:2px">#${u.id} · ${u.role}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        ${assignBtn}
+        <button class="btn btn-danger btn-sm" onclick="deleteUser(${u.id})">Delete</button>
+      </div>
+    </div>`;
+  }).join("") || `<div style="color:var(--muted);padding:20px 0">No users yet.</div>`;
+
+  return `
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+    <div class="section-label">// USERS</div>
+    <button class="btn btn-primary btn-sm" onclick="openAddUser()">+ Register User</button>
+  </div>
+  <div class="filter-row">
+    <input placeholder="Search by name or role..." oninput="filterUsers(this.value)" style="width:280px"/>
+  </div>
+  <div id="user-list">${rows}</div>`;
+}
+
+function filterUsers(q) {
+  const list = $("user-list"); if (!list) return;
+  const ql = q.toLowerCase();
+  list.innerHTML = users.filter(u=>!ql||u.name.toLowerCase().includes(ql)||u.role.toLowerCase().includes(ql))
+    .map(u=>{
+      const avail=Object.entries(stations).filter(([,s])=>s.status==="available");
+      const assignBtn=!u.station&&avail.length>0
+        ?`<button class="btn btn-primary btn-sm" onclick="openAssignUser(${u.id})">Assign</button>`
+        :u.station
+          ?`<span style="color:var(--purple);font-size:13px;background:var(--purple-bg);padding:3px 10px;border-radius:6px">→ ${u.station}</span>
+            <button class="btn btn-ghost btn-sm" onclick="releaseUser(${u.id})">Release</button>`:"";
+      return `
+      <div class="row-item">
+        <div class="avatar">${ROLE_ICON[u.role]||"👤"}</div>
+        <div style="flex:1">
+          <div style="color:#f0f0f0;font-weight:600;font-size:14px">${u.name}</div>
+          <div style="color:var(--muted);font-size:12px;margin-top:2px">#${u.id} · ${u.role}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          ${assignBtn}
+          <button class="btn btn-danger btn-sm" onclick="deleteUser(${u.id})">Delete</button>
+        </div>
+      </div>`;
+    }).join("") || `<div style="color:var(--muted);padding:20px 0">No users matching "${q}".</div>`;
+}
+
+function openAddUser() {
+  openModal("// add_user", `
+    <div class="field"><label>Full Name *</label><input id="f-uname" placeholder="Jane Doe"/></div>
+    <div class="field"><label>Role</label>
+      <select id="f-urole"><option>Student</option><option>Instructor</option><option>Technician</option></select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" onclick="saveAddUser()">Register</button>
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+    </div>`);
+}
+
+function saveAddUser() {
+  const name=$("f-uname").value.trim();
+  if (!name){showToast("Name required","error");return;}
+  users.push({id:nextUserId(),name,role:$("f-urole").value,station:null});
+  showToast(`User ${name} registered`);
+  closeModal();render();
+}
+
+function openAssignUser(uid) {
+  const avail=Object.entries(stations).filter(([,s])=>s.status==="available");
+  const opts=avail.map(([sid,s])=>`<option value="${sid}">${sid} — ${s.name}</option>`).join("");
+  openModal(`// assign_user`, `
+    <div class="field"><label>Select Station</label>
+      <select id="f-assign-sid">${opts}</select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" onclick="saveAssignUser(${uid})">Assign</button>
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+    </div>`);
+}
+
+function saveAssignUser(uid) {
+  const sid=$("f-assign-sid").value;
+  const user=users.find(u=>u.id===uid);
+  if (!user||!sid) return;
+  user.station=sid;
+  stations[sid].status="occupied";
+  stations[sid].assigned_user=user.name;
+  showToast(`${user.name} → ${sid}`);
+  closeModal();render();
+}
+
+function releaseUser(uid) {
+  const user=users.find(u=>u.id===uid);
+  if (!user?.station) return;
+  const sid=user.station;
+  user.station=null;
+  if (stations[sid]){stations[sid].status="available";stations[sid].assigned_user=null;}
+  showToast(`${user.name} released from ${sid}`);
+  render();
+}
+
+function deleteUser(uid) {
+  const user=users.find(u=>u.id===uid);
+  if (!user) return;
+  if (user.station&&stations[user.station]){
+    stations[user.station].status="available";
+    stations[user.station].assigned_user=null;
+  }
+  users=users.filter(u=>u.id!==uid);
+  showToast(`User #${uid} deleted`);
+  render();
+}
+
+// ═══════════════════════════════════════════
+//  ISSUES
+// ═══════════════════════════════════════════
+function renderIssues() {
+  const rows = issues.map(i=>{
+    const isCritical = i.state==="open"&&i.severity==="high";
+    const stateColor = i.state==="open"?"var(--red)":"var(--green)";
+    return `
+    <div class="row-item ${isCritical?"critical":""}">
+      <div style="min-width:36px;color:#444;font-size:13px">#${i.id}</div>
+      <div style="min-width:62px;color:var(--purple);font-size:13px;font-weight:600">${i.station_id}</div>
+      <div style="flex:1">
+        <div style="font-size:14px">${i.description}</div>
+        ${i.resolution_note?`<div style="color:var(--muted);font-size:12px;margin-top:4px">✓ ${i.resolution_note}</div>`:""}
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        ${sevBadge(i.severity)}
+        <span style="color:${stateColor};font-size:12px;font-weight:600">${i.state.toUpperCase()}</span>
+        ${i.state==="open"?`<button class="btn btn-primary btn-sm" onclick="openResolve(${i.id})">Resolve</button>`:""}
+      </div>
+    </div>`;
+  }).join("") || `<div style="color:var(--muted);padding:20px 0">No issues yet.</div>`;
+
+  const stationOpts=Object.entries(stations).length===0
+    ?""
+    :`<button class="btn btn-primary btn-sm" onclick="openLogIssue()">+ Log Issue</button>`;
+
+  return `
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+    <div class="section-label">// ISSUES & INCIDENTS</div>
+    ${stationOpts}
+  </div>
+  <div class="filter-row">
+    <select id="iss-state" onchange="filterIssues()" style="width:150px">
+      <option value="all">All States</option>
+      <option value="open">Open</option>
+      <option value="resolved">Resolved</option>
+    </select>
+    <select id="iss-sev" onchange="filterIssues()" style="width:150px">
+      <option value="all">All Severity</option>
+      <option value="high">High</option>
+      <option value="medium">Medium</option>
+      <option value="low">Low</option>
+    </select>
+  </div>
+  <div id="issue-list">${rows}</div>`;
+}
+
+function filterIssues() {
+  const state=($("iss-state")||{value:"all"}).value;
+  const sev=($("iss-sev")||{value:"all"}).value;
+  const list=$("issue-list"); if(!list) return;
+  const filtered=issues.filter(i=>(state==="all"||i.state===state)&&(sev==="all"||i.severity===sev));
+  list.innerHTML=filtered.map(i=>{
+    const isCritical=i.state==="open"&&i.severity==="high";
+    const stateColor=i.state==="open"?"var(--red)":"var(--green)";
+    return `
+    <div class="row-item ${isCritical?"critical":""}">
+      <div style="min-width:36px;color:#444;font-size:13px">#${i.id}</div>
+      <div style="min-width:62px;color:var(--purple);font-size:13px;font-weight:600">${i.station_id}</div>
+      <div style="flex:1">
+        <div style="font-size:14px">${i.description}</div>
+        ${i.resolution_note?`<div style="color:var(--muted);font-size:12px;margin-top:4px">✓ ${i.resolution_note}</div>`:""}
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        ${sevBadge(i.severity)}
+        <span style="color:${stateColor};font-size:12px;font-weight:600">${i.state.toUpperCase()}</span>
+        ${i.state==="open"?`<button class="btn btn-primary btn-sm" onclick="openResolve(${i.id})">Resolve</button>`:""}
+      </div>
+    </div>`;
+  }).join("") || `<div style="color:var(--muted);padding:20px 0">No matching issues.</div>`;
+}
+
+function openLogIssue() {
+  const opts=Object.entries(stations).map(([sid,s])=>`<option value="${sid}">${sid} — ${s.name}</option>`).join("");
+  openModal("// log_issue", `
+    <div class="field"><label>Station</label><select id="f-istation">${opts}</select></div>
+    <div class="field"><label>Description *</label><textarea id="f-idesc" rows="3"></textarea></div>
+    <div class="field"><label>Severity</label>
+      <select id="f-isev"><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option></select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" onclick="saveLogIssue()">Log Issue</button>
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+    </div>`);
+}
+
+function saveLogIssue() {
+  const desc=$("f-idesc").value.trim();
+  const sid=$("f-istation").value;
+  const sev=$("f-isev").value;
+  if(!desc||!sid){showToast("Fill all fields","error");return;}
+  const id=nextIssueId();
+  issues.push({id,station_id:sid,description:desc,severity:sev,state:"open",resolution_note:null});
+  if(sev==="high"){stations[sid].status="maintenance";showToast(`Issue #${id} logged — station flagged for maintenance`);}
+  else showToast(`Issue #${id} logged`);
+  closeModal();render();
+}
+
+function openResolve(iid) {
+  openModal(`// resolve_issue [#${iid}]`, `
+    <div class="field"><label>Resolution Note (optional)</label>
+      <textarea id="f-rnote" rows="3" placeholder="Describe how it was fixed..."></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" onclick="saveResolve(${iid})">Mark Resolved</button>
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+    </div>`);
+}
+
+function saveResolve(iid) {
+  const note=($("f-rnote")||{value:""}).value.trim();
+  const issue=issues.find(i=>i.id===iid);
+  if(!issue) return;
+  issue.state="resolved";
+  issue.resolution_note=note||"Resolved.";
+  showToast(`Issue #${iid} marked as resolved`);
+  closeModal();render();
+}
+
+// ═══════════════════════════════════════════
+//  REPORTS
+// ═══════════════════════════════════════════
+function renderReports() {
+  const s=getStats();
+  if(s.total===0) return `<div class="section-label">// REPORTS & SUMMARY</div><div style="color:var(--muted)">No data available. Load sample data first.</div>`;
+
+  const kvRows=[
+    ["Stations Total",s.total],["Available",s.available],["Occupied",s.occupied],
+    ["Maintenance",s.maintenance],[`Utilization`,`${s.utilization}%`],
+    ["Registered Users",users.length],["Currently Assigned",users.filter(u=>u.station).length],
+    ["Total Issues",issues.length],["Open Issues",s.openIssues],["High Severity Open",s.highOpen],
+  ].map(([k,v])=>`<div><span class="k">${k}</span><span class="v">${v}</span></div>`).join("");
+
+  const hwRows=Object.entries(stations).sort(([a],[b])=>a.localeCompare(b)).map(([sid,st])=>`
+    <tr>
+      <td>${sid}</td><td style="color:#aaa">${st.name}</td>
+      <td style="color:#aaa">${OS_ICON[st.hardware.os]||""} ${st.hardware.os}</td>
+      <td style="color:#aaa">${st.hardware.ram}</td><td style="color:#aaa">${st.hardware.cpu}</td>
+      <td style="color:#aaa">${st.hardware.storage}</td><td>${pill(st.status)}</td>
+    </tr>`).join("");
+
+  const sevRows=["high","medium","low"].map(sev=>{
+    const total=issues.filter(i=>i.severity===sev).length;
+    const open=issues.filter(i=>i.severity===sev&&i.state==="open").length;
+    const resolved=total-open;
+    return `<div style="display:flex;align-items:center;gap:16px;margin-bottom:10px;padding:10px 14px;border-radius:8px;
+      background:${sev==="high"?"var(--red-bg)":sev==="medium"?"var(--yellow-bg)":"var(--green-bg)"};
+      border:1px solid ${sev==="high"?"var(--red-bd)":sev==="medium"?"#713f12":"var(--green-bd)"}">
+      ${sevBadge(sev)}
+      <span style="color:#888;font-size:13px">Total: <span style="color:#e0e0e0">${total}</span></span>
+      <span style="color:#888;font-size:13px">Open: <span style="color:var(--red)">${open}</span></span>
+      <span style="color:#888;font-size:13px">Resolved: <span style="color:var(--green)">${resolved}</span></span>
+    </div>`;
+  }).join("");
+
+  return `
+  <div class="section-label">// REPORTS & SUMMARY</div>
+  <div style="display:flex;flex-direction:column;gap:20px">
+    <div class="card">
+      <div class="card-label">// LAB_MONITOR_DASHBOARD</div>
+      <div class="report-kv">${kvRows}</div>
+    </div>
+    <div class="card">
+      <div class="card-label">// HARDWARE_OVERVIEW</div>
+      <div style="overflow-x:auto">
+        <table>
+          <thead><tr><th>ID</th><th>Name</th><th>OS</th><th>RAM</th><th>CPU</th><th>Storage</th><th>Status</th></tr></thead>
+          <tbody>${hwRows}</tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-label">// ISSUES_SUMMARY</div>
+      ${sevRows}
+    </div>
+  </div>`;
+}
+
+// ═══════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════
+render();
+autoLoadFromServer();
+</script>
+</body>
+</html>
