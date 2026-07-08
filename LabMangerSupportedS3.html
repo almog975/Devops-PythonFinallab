@@ -533,6 +533,29 @@ function exportData() {
 }
 
 // ═══════════════════════════════════════════
+// SAVE TO SERVER (writes to EFS via nginx PUT)
+// ═══════════════════════════════════════════
+async function saveToServer() {
+  const payload = {
+    STATIONS: Object.entries(stations).map(([id,s])=>({id,...s})),
+    USERS: users,
+    ISSUES: issues,
+  };
+  try {
+    const res = await fetch('/data/lab_data.json', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload, null, 2)
+    });
+    if (!res.ok) throw new Error('Save failed: ' + res.status);
+    showToast("Saved to server");
+  } catch (err) {
+    console.error('Save error:', err);
+    showToast("Could not save to server", "error");
+  }
+}
+
+// ═══════════════════════════════════════════
 //  ROUTING
 // ═══════════════════════════════════════════
 function switchTab(tab) {
@@ -559,7 +582,8 @@ function updateTopbar() {
   const s = getStats();
   $("topbar-actions").innerHTML = s.total === 0
     ? `<button class="btn btn-primary btn-sm" onclick="openLoadModal()">⬆ Load Data</button>`
-    : `<button class="btn btn-ghost btn-sm" onclick="exportData()">↓ Export JSON</button>
+    : `<button class="btn btn-primary btn-sm" onclick="saveToServer()">💾 Save</button>
+       <button class="btn btn-ghost btn-sm" onclick="exportData()">↓ Export JSON</button>
        <button class="btn btn-danger btn-sm" onclick="confirmClear()">✕ Clear</button>`;
 }
 
@@ -726,346 +750,6 @@ function saveAddStation() {
   };
   showToast(`Station ${sid} added`);
   closeModal(); render();
-}
-
-function openEditStation(sid) {
-  const s = stations[sid];
-  openModal(`// edit_station [${sid}]`, `
-    <div style="color:#aaa;font-size:14px;margin-bottom:16px">${s.name}</div>
-    <div class="field"><label>Status</label>
-      <select id="f-est"><option value="available" ${s.status==="available"?"selected":""}>available</option><option value="occupied" ${s.status==="occupied"?"selected":""}>occupied</option><option value="maintenance" ${s.status==="maintenance"?"selected":""}>maintenance</option></select>
-    </div>
-    <div class="grid2">
-      <div class="field"><label>OS</label><input id="f-eos" value="${s.hardware.os}"/></div>
-      <div class="field"><label>RAM</label><input id="f-eram" value="${s.hardware.ram}"/></div>
-      <div class="field"><label>CPU</label><input id="f-ecpu" value="${s.hardware.cpu}"/></div>
-      <div class="field"><label>Storage</label><input id="f-estorage" value="${s.hardware.storage}"/></div>
-    </div>
-    <div class="modal-actions">
-      <button class="btn btn-primary" onclick="saveEditStation('${sid}')">Save Changes</button>
-      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
-    </div>`);
-}
-
-function saveEditStation(sid) {
-  const newStatus = $("f-est").value;
-  stations[sid].status  = newStatus;
-  stations[sid].hardware.os      = $("f-eos").value;
-  stations[sid].hardware.ram     = $("f-eram").value;
-  stations[sid].hardware.cpu     = $("f-ecpu").value;
-  stations[sid].hardware.storage = $("f-estorage").value;
-  if (newStatus !== "occupied") stations[sid].assigned_user = null;
-  showToast(`Station ${sid} updated`);
-  closeModal(); render();
-}
-
-// ═══════════════════════════════════════════
-//  USERS
-// ═══════════════════════════════════════════
-function renderUsers() {
-  const q = ""; // populated on input
-  const rows = users.map(u=>{
-    const avail = Object.entries(stations).filter(([,s])=>s.status==="available");
-    const assignBtn = !u.station && avail.length>0
-      ? `<button class="btn btn-primary btn-sm" onclick="openAssignUser(${u.id})">Assign</button>`
-      : u.station
-        ? `<span style="color:var(--purple);font-size:13px;background:var(--purple-bg);padding:3px 10px;border-radius:6px">→ ${u.station}</span>
-           <button class="btn btn-ghost btn-sm" onclick="releaseUser(${u.id})">Release</button>`
-        : "";
-    return `
-    <div class="row-item" id="urow-${u.id}">
-      <div class="avatar">${ROLE_ICON[u.role]||"👤"}</div>
-      <div style="flex:1">
-        <div style="color:#f0f0f0;font-weight:600;font-size:14px">${u.name}</div>
-        <div style="color:var(--muted);font-size:12px;margin-top:2px">#${u.id} · ${u.role}</div>
-      </div>
-      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-        ${assignBtn}
-        <button class="btn btn-danger btn-sm" onclick="deleteUser(${u.id})">Delete</button>
-      </div>
-    </div>`;
-  }).join("") || `<div style="color:var(--muted);padding:20px 0">No users yet.</div>`;
-
-  return `
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
-    <div class="section-label">// USERS</div>
-    <button class="btn btn-primary btn-sm" onclick="openAddUser()">+ Register User</button>
-  </div>
-  <div class="filter-row">
-    <input placeholder="Search by name or role..." oninput="filterUsers(this.value)" style="width:280px"/>
-  </div>
-  <div id="user-list">${rows}</div>`;
-}
-
-function filterUsers(q) {
-  const list = $("user-list"); if (!list) return;
-  const ql = q.toLowerCase();
-  list.innerHTML = users.filter(u=>!ql||u.name.toLowerCase().includes(ql)||u.role.toLowerCase().includes(ql))
-    .map(u=>{
-      const avail=Object.entries(stations).filter(([,s])=>s.status==="available");
-      const assignBtn=!u.station&&avail.length>0
-        ?`<button class="btn btn-primary btn-sm" onclick="openAssignUser(${u.id})">Assign</button>`
-        :u.station
-          ?`<span style="color:var(--purple);font-size:13px;background:var(--purple-bg);padding:3px 10px;border-radius:6px">→ ${u.station}</span>
-            <button class="btn btn-ghost btn-sm" onclick="releaseUser(${u.id})">Release</button>`:"";
-      return `
-      <div class="row-item">
-        <div class="avatar">${ROLE_ICON[u.role]||"👤"}</div>
-        <div style="flex:1">
-          <div style="color:#f0f0f0;font-weight:600;font-size:14px">${u.name}</div>
-          <div style="color:var(--muted);font-size:12px;margin-top:2px">#${u.id} · ${u.role}</div>
-        </div>
-        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-          ${assignBtn}
-          <button class="btn btn-danger btn-sm" onclick="deleteUser(${u.id})">Delete</button>
-        </div>
-      </div>`;
-    }).join("") || `<div style="color:var(--muted);padding:20px 0">No users matching "${q}".</div>`;
-}
-
-function openAddUser() {
-  openModal("// add_user", `
-    <div class="field"><label>Full Name *</label><input id="f-uname" placeholder="Jane Doe"/></div>
-    <div class="field"><label>Role</label>
-      <select id="f-urole"><option>Student</option><option>Instructor</option><option>Technician</option></select>
-    </div>
-    <div class="modal-actions">
-      <button class="btn btn-primary" onclick="saveAddUser()">Register</button>
-      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
-    </div>`);
-}
-
-function saveAddUser() {
-  const name=$("f-uname").value.trim();
-  if (!name){showToast("Name required","error");return;}
-  users.push({id:nextUserId(),name,role:$("f-urole").value,station:null});
-  showToast(`User ${name} registered`);
-  closeModal();render();
-}
-
-function openAssignUser(uid) {
-  const avail=Object.entries(stations).filter(([,s])=>s.status==="available");
-  const opts=avail.map(([sid,s])=>`<option value="${sid}">${sid} — ${s.name}</option>`).join("");
-  openModal(`// assign_user`, `
-    <div class="field"><label>Select Station</label>
-      <select id="f-assign-sid">${opts}</select>
-    </div>
-    <div class="modal-actions">
-      <button class="btn btn-primary" onclick="saveAssignUser(${uid})">Assign</button>
-      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
-    </div>`);
-}
-
-function saveAssignUser(uid) {
-  const sid=$("f-assign-sid").value;
-  const user=users.find(u=>u.id===uid);
-  if (!user||!sid) return;
-  user.station=sid;
-  stations[sid].status="occupied";
-  stations[sid].assigned_user=user.name;
-  showToast(`${user.name} → ${sid}`);
-  closeModal();render();
-}
-
-function releaseUser(uid) {
-  const user=users.find(u=>u.id===uid);
-  if (!user?.station) return;
-  const sid=user.station;
-  user.station=null;
-  if (stations[sid]){stations[sid].status="available";stations[sid].assigned_user=null;}
-  showToast(`${user.name} released from ${sid}`);
-  render();
-}
-
-function deleteUser(uid) {
-  const user=users.find(u=>u.id===uid);
-  if (!user) return;
-  if (user.station&&stations[user.station]){
-    stations[user.station].status="available";
-    stations[user.station].assigned_user=null;
-  }
-  users=users.filter(u=>u.id!==uid);
-  showToast(`User #${uid} deleted`);
-  render();
-}
-
-// ═══════════════════════════════════════════
-//  ISSUES
-// ═══════════════════════════════════════════
-function renderIssues() {
-  const rows = issues.map(i=>{
-    const isCritical = i.state==="open"&&i.severity==="high";
-    const stateColor = i.state==="open"?"var(--red)":"var(--green)";
-    return `
-    <div class="row-item ${isCritical?"critical":""}">
-      <div style="min-width:36px;color:#444;font-size:13px">#${i.id}</div>
-      <div style="min-width:62px;color:var(--purple);font-size:13px;font-weight:600">${i.station_id}</div>
-      <div style="flex:1">
-        <div style="font-size:14px">${i.description}</div>
-        ${i.resolution_note?`<div style="color:var(--muted);font-size:12px;margin-top:4px">✓ ${i.resolution_note}</div>`:""}
-      </div>
-      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-        ${sevBadge(i.severity)}
-        <span style="color:${stateColor};font-size:12px;font-weight:600">${i.state.toUpperCase()}</span>
-        ${i.state==="open"?`<button class="btn btn-primary btn-sm" onclick="openResolve(${i.id})">Resolve</button>`:""}
-      </div>
-    </div>`;
-  }).join("") || `<div style="color:var(--muted);padding:20px 0">No issues yet.</div>`;
-
-  const stationOpts=Object.entries(stations).length===0
-    ?""
-    :`<button class="btn btn-primary btn-sm" onclick="openLogIssue()">+ Log Issue</button>`;
-
-  return `
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
-    <div class="section-label">// ISSUES & INCIDENTS</div>
-    ${stationOpts}
-  </div>
-  <div class="filter-row">
-    <select id="iss-state" onchange="filterIssues()" style="width:150px">
-      <option value="all">All States</option>
-      <option value="open">Open</option>
-      <option value="resolved">Resolved</option>
-    </select>
-    <select id="iss-sev" onchange="filterIssues()" style="width:150px">
-      <option value="all">All Severity</option>
-      <option value="high">High</option>
-      <option value="medium">Medium</option>
-      <option value="low">Low</option>
-    </select>
-  </div>
-  <div id="issue-list">${rows}</div>`;
-}
-
-function filterIssues() {
-  const state=($("iss-state")||{value:"all"}).value;
-  const sev=($("iss-sev")||{value:"all"}).value;
-  const list=$("issue-list"); if(!list) return;
-  const filtered=issues.filter(i=>(state==="all"||i.state===state)&&(sev==="all"||i.severity===sev));
-  list.innerHTML=filtered.map(i=>{
-    const isCritical=i.state==="open"&&i.severity==="high";
-    const stateColor=i.state==="open"?"var(--red)":"var(--green)";
-    return `
-    <div class="row-item ${isCritical?"critical":""}">
-      <div style="min-width:36px;color:#444;font-size:13px">#${i.id}</div>
-      <div style="min-width:62px;color:var(--purple);font-size:13px;font-weight:600">${i.station_id}</div>
-      <div style="flex:1">
-        <div style="font-size:14px">${i.description}</div>
-        ${i.resolution_note?`<div style="color:var(--muted);font-size:12px;margin-top:4px">✓ ${i.resolution_note}</div>`:""}
-      </div>
-      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-        ${sevBadge(i.severity)}
-        <span style="color:${stateColor};font-size:12px;font-weight:600">${i.state.toUpperCase()}</span>
-        ${i.state==="open"?`<button class="btn btn-primary btn-sm" onclick="openResolve(${i.id})">Resolve</button>`:""}
-      </div>
-    </div>`;
-  }).join("") || `<div style="color:var(--muted);padding:20px 0">No matching issues.</div>`;
-}
-
-function openLogIssue() {
-  const opts=Object.entries(stations).map(([sid,s])=>`<option value="${sid}">${sid} — ${s.name}</option>`).join("");
-  openModal("// log_issue", `
-    <div class="field"><label>Station</label><select id="f-istation">${opts}</select></div>
-    <div class="field"><label>Description *</label><textarea id="f-idesc" rows="3"></textarea></div>
-    <div class="field"><label>Severity</label>
-      <select id="f-isev"><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option></select>
-    </div>
-    <div class="modal-actions">
-      <button class="btn btn-primary" onclick="saveLogIssue()">Log Issue</button>
-      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
-    </div>`);
-}
-
-function saveLogIssue() {
-  const desc=$("f-idesc").value.trim();
-  const sid=$("f-istation").value;
-  const sev=$("f-isev").value;
-  if(!desc||!sid){showToast("Fill all fields","error");return;}
-  const id=nextIssueId();
-  issues.push({id,station_id:sid,description:desc,severity:sev,state:"open",resolution_note:null});
-  if(sev==="high"){stations[sid].status="maintenance";showToast(`Issue #${id} logged — station flagged for maintenance`);}
-  else showToast(`Issue #${id} logged`);
-  closeModal();render();
-}
-
-function openResolve(iid) {
-  openModal(`// resolve_issue [#${iid}]`, `
-    <div class="field"><label>Resolution Note (optional)</label>
-      <textarea id="f-rnote" rows="3" placeholder="Describe how it was fixed..."></textarea>
-    </div>
-    <div class="modal-actions">
-      <button class="btn btn-primary" onclick="saveResolve(${iid})">Mark Resolved</button>
-      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
-    </div>`);
-}
-
-function saveResolve(iid) {
-  const note=($("f-rnote")||{value:""}).value.trim();
-  const issue=issues.find(i=>i.id===iid);
-  if(!issue) return;
-  issue.state="resolved";
-  issue.resolution_note=note||"Resolved.";
-  showToast(`Issue #${iid} marked as resolved`);
-  closeModal();render();
-}
-
-// ═══════════════════════════════════════════
-//  REPORTS
-// ═══════════════════════════════════════════
-function renderReports() {
-  const s=getStats();
-  if(s.total===0) return `<div class="section-label">// REPORTS & SUMMARY</div><div style="color:var(--muted)">No data available. Load sample data first.</div>`;
-
-  const kvRows=[
-    ["Stations Total",s.total],["Available",s.available],["Occupied",s.occupied],
-    ["Maintenance",s.maintenance],[`Utilization`,`${s.utilization}%`],
-    ["Registered Users",users.length],["Currently Assigned",users.filter(u=>u.station).length],
-    ["Total Issues",issues.length],["Open Issues",s.openIssues],["High Severity Open",s.highOpen],
-  ].map(([k,v])=>`<div><span class="k">${k}</span><span class="v">${v}</span></div>`).join("");
-
-  const hwRows=Object.entries(stations).sort(([a],[b])=>a.localeCompare(b)).map(([sid,st])=>`
-    <tr>
-      <td>${sid}</td><td style="color:#aaa">${st.name}</td>
-      <td style="color:#aaa">${OS_ICON[st.hardware.os]||""} ${st.hardware.os}</td>
-      <td style="color:#aaa">${st.hardware.ram}</td><td style="color:#aaa">${st.hardware.cpu}</td>
-      <td style="color:#aaa">${st.hardware.storage}</td><td>${pill(st.status)}</td>
-    </tr>`).join("");
-
-  const sevRows=["high","medium","low"].map(sev=>{
-    const total=issues.filter(i=>i.severity===sev).length;
-    const open=issues.filter(i=>i.severity===sev&&i.state==="open").length;
-    const resolved=total-open;
-    return `<div style="display:flex;align-items:center;gap:16px;margin-bottom:10px;padding:10px 14px;border-radius:8px;
-      background:${sev==="high"?"var(--red-bg)":sev==="medium"?"var(--yellow-bg)":"var(--green-bg)"};
-      border:1px solid ${sev==="high"?"var(--red-bd)":sev==="medium"?"#713f12":"var(--green-bd)"}">
-      ${sevBadge(sev)}
-      <span style="color:#888;font-size:13px">Total: <span style="color:#e0e0e0">${total}</span></span>
-      <span style="color:#888;font-size:13px">Open: <span style="color:var(--red)">${open}</span></span>
-      <span style="color:#888;font-size:13px">Resolved: <span style="color:var(--green)">${resolved}</span></span>
-    </div>`;
-  }).join("");
-
-  return `
-  <div class="section-label">// REPORTS & SUMMARY</div>
-  <div style="display:flex;flex-direction:column;gap:20px">
-    <div class="card">
-      <div class="card-label">// LAB_MONITOR_DASHBOARD</div>
-      <div class="report-kv">${kvRows}</div>
-    </div>
-    <div class="card">
-      <div class="card-label">// HARDWARE_OVERVIEW</div>
-      <div style="overflow-x:auto">
-        <table>
-          <thead><tr><th>ID</th><th>Name</th><th>OS</th><th>RAM</th><th>CPU</th><th>Storage</th><th>Status</th></tr></thead>
-          <tbody>${hwRows}</tbody>
-        </table>
-      </div>
-    </div>
-    <div class="card">
-      <div class="card-label">// ISSUES_SUMMARY</div>
-      ${sevRows}
-    </div>
-  </div>`;
 }
 
 // ═══════════════════════════════════════════
