@@ -15,6 +15,10 @@ fi
 rm -f /tmp/lab_data.json
 echo "[entrypoint] Temp data cleared."
 
-# ── Step 4c: Start nginx in foreground ───────────────────────────────────────
+# ── Step 4c: Ensure nginx can write to the mounted EFS volume ────────────────
+chmod -R 777 /data
+echo "[entrypoint] Data volume permissions set."
+
+# ── Step 4d: Start nginx in foreground ───────────────────────────────────────
 echo "[entrypoint] Starting nginx..."
 exec nginx -g "daemon off;"
