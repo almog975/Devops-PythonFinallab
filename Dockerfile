@@ -8,9 +8,11 @@ ENV DEBIAN_FRONTEND=noninteractive
 # ── 1. Install nginx (with WebDAV module, for saving data) + curl + aws cli ───
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
+    ca-certificates \
     nginx-extras \
     curl \
     unzip \
+    && update-ca-certificates \
     && curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o /tmp/awscliv2.zip \
     && unzip /tmp/awscliv2.zip -d /tmp \
     && /tmp/aws/install \
