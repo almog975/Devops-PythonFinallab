@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -204,7 +203,6 @@
 </head>
 <body>
 
-<!-- TOP BAR -->
 <div id="topbar">
   <div class="brand">
     <span class="logo">⬡</span>
@@ -214,7 +212,6 @@
   <div class="actions" id="topbar-actions"></div>
 </div>
 
-<!-- NAV -->
 <div id="nav">
   <button class="nav-btn active" onclick="switchTab('dashboard')">Dashboard</button>
   <button class="nav-btn" onclick="switchTab('stations')">Stations</button>
@@ -223,10 +220,8 @@
   <button class="nav-btn" onclick="switchTab('reports')">Reports</button>
 </div>
 
-<!-- MAIN -->
 <div id="main"></div>
 
-<!-- MODAL -->
 <div id="modal-overlay">
   <div id="modal-box">
     <div class="modal-header">
@@ -237,7 +232,6 @@
   </div>
 </div>
 
-<!-- TOAST -->
 <div id="toast"></div>
 
 <script>
@@ -327,6 +321,52 @@ const ROLE_ICON = {Student:"🎓",Instructor:"👩‍💻",Technician:"🔧"};
 function updateNavIssues() {
   const open = issues.filter(i=>i.state==="open").length;
   $("nav-issues-btn").textContent = open > 0 ? `Issues (${open})` : "Issues";
+}
+
+// ═══════════════════════════════════════════
+// AUTO-LOAD FROM MOUNTED VOLUME (Docker)
+// ═══════════════════════════════════════════
+async function autoLoadFromServer() {
+  try {
+    const res = await fetch('/data/lab_data.json');
+    if (!res.ok) return; // silently skip if file not found
+    const parsed = await res.json();
+    if (!parsed.STATIONS || !parsed.USERS || !parsed.ISSUES) return;
+    stations = {};
+    parsed.STATIONS.forEach(s => {
+      if (!s.id) return;
+      const sid = String(s.id).toUpperCase();
+      stations[sid] = {
+        name: s.name || sid,
+        status: ["available","occupied","maintenance"].includes(s.status) ? s.status : "available",
+        assigned_user: s.assigned_user || null,
+        hardware: {
+          os: (s.hardware||{}).os || "Unknown",
+          ram: (s.hardware||{}).ram || "Unknown",
+          cpu: (s.hardware||{}).cpu || "Unknown",
+          storage: (s.hardware||{}).storage || "Unknown",
+        }
+      };
+    });
+    users = parsed.USERS.map(u => ({
+      id: u.id || nextUserId(),
+      name: u.name || "Unknown",
+      role: u.role || "Student",
+      station: u.station || null,
+    }));
+    issues = parsed.ISSUES.map(i => ({
+      id: i.id || nextIssueId(),
+      station_id: String(i.station_id||"").toUpperCase(),
+      description: i.description || "",
+      severity: ["high","medium","low"].includes(i.severity) ? i.severity : "low",
+      state: ["open","resolved"].includes(i.state) ? i.state : "open",
+      resolution_note: i.resolution_note || null,
+    }));
+    showToast(`Auto-loaded ${Object.keys(stations).length} stations from data volume`);
+    render();
+  } catch(e) {
+    // No data file available — user can load manually
+  }
 }
 
 // ═══════════════════════════════════════════
@@ -472,7 +512,7 @@ function confirmClear() {
 function clearAll() {
   stations = {}; users = []; issues = [];
   showToast("All data cleared");
-  closeModal(); render();
+  closeModal(); render(); saveToServer();
 }
 
 // ═══════════════════════════════════════════
@@ -490,6 +530,29 @@ function exportData() {
   a.href=url; a.download="lab_export.json"; a.click();
   URL.revokeObjectURL(url);
   showToast("Exported lab_export.json");
+}
+
+// ═══════════════════════════════════════════
+// SAVE TO SERVER (writes to EFS via nginx PUT)
+// ═══════════════════════════════════════════
+async function saveToServer() {
+  const payload = {
+    STATIONS: Object.entries(stations).map(([id,s])=>({id,...s})),
+    USERS: users,
+    ISSUES: issues,
+  };
+  try {
+    const res = await fetch('/data/lab_data.json', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload, null, 2)
+    });
+    if (!res.ok) throw new Error('Save failed: ' + res.status);
+    showToast("Saved to server");
+  } catch (err) {
+    console.error('Save error:', err);
+    showToast("Could not save to server", "error");
+  }
 }
 
 // ═══════════════════════════════════════════
@@ -519,7 +582,8 @@ function updateTopbar() {
   const s = getStats();
   $("topbar-actions").innerHTML = s.total === 0
     ? `<button class="btn btn-primary btn-sm" onclick="openLoadModal()">⬆ Load Data</button>`
-    : `<button class="btn btn-ghost btn-sm" onclick="exportData()">↓ Export JSON</button>
+    : `<button class="btn btn-primary btn-sm" onclick="saveToServer()">💾 Save</button>
+       <button class="btn btn-ghost btn-sm" onclick="exportData()">↓ Export JSON</button>
        <button class="btn btn-danger btn-sm" onclick="confirmClear()">✕ Clear</button>`;
 }
 
@@ -685,7 +749,7 @@ function saveAddStation() {
     hardware:{os:$("f-os").value||"Unknown",ram:$("f-ram").value||"Unknown",cpu,storage:$("f-storage").value||"Unknown"}
   };
   showToast(`Station ${sid} added`);
-  closeModal(); render();
+  closeModal(); render(); saveToServer();
 }
 
 function openEditStation(sid) {
@@ -716,14 +780,13 @@ function saveEditStation(sid) {
   stations[sid].hardware.storage = $("f-estorage").value;
   if (newStatus !== "occupied") stations[sid].assigned_user = null;
   showToast(`Station ${sid} updated`);
-  closeModal(); render();
+  closeModal(); render(); saveToServer();
 }
 
 // ═══════════════════════════════════════════
 //  USERS
 // ═══════════════════════════════════════════
 function renderUsers() {
-  const q = ""; // populated on input
   const rows = users.map(u=>{
     const avail = Object.entries(stations).filter(([,s])=>s.status==="available");
     const assignBtn = !u.station && avail.length>0
@@ -783,6 +846,10 @@ function filterUsers(q) {
     }).join("") || `<div style="color:var(--muted);padding:20px 0">No users matching "${q}".</div>`;
 }
 
+// ═══════════════════════════════════════════
+//  USER ACTIONS
+// ═══════════════════════════════════════════
+// Added missing actions down below to safely link up on button interactions
 function openAddUser() {
   openModal("// add_user", `
     <div class="field"><label>Full Name *</label><input id="f-uname" placeholder="Jane Doe"/></div>
@@ -800,7 +867,7 @@ function saveAddUser() {
   if (!name){showToast("Name required","error");return;}
   users.push({id:nextUserId(),name,role:$("f-urole").value,station:null});
   showToast(`User ${name} registered`);
-  closeModal();render();
+  closeModal();render(); saveToServer();
 }
 
 function openAssignUser(uid) {
@@ -816,6 +883,7 @@ function openAssignUser(uid) {
     </div>`);
 }
 
+// Fixed missing dependencies for user mapping assignments
 function saveAssignUser(uid) {
   const sid=$("f-assign-sid").value;
   const user=users.find(u=>u.id===uid);
@@ -824,7 +892,7 @@ function saveAssignUser(uid) {
   stations[sid].status="occupied";
   stations[sid].assigned_user=user.name;
   showToast(`${user.name} → ${sid}`);
-  closeModal();render();
+  closeModal();render(); saveToServer();
 }
 
 function releaseUser(uid) {
@@ -834,7 +902,7 @@ function releaseUser(uid) {
   user.station=null;
   if (stations[sid]){stations[sid].status="available";stations[sid].assigned_user=null;}
   showToast(`${user.name} released from ${sid}`);
-  render();
+  render(); saveToServer();
 }
 
 function deleteUser(uid) {
@@ -846,7 +914,7 @@ function deleteUser(uid) {
   }
   users=users.filter(u=>u.id!==uid);
   showToast(`User #${uid} deleted`);
-  render();
+  render(); saveToServer();
 }
 
 // ═══════════════════════════════════════════
@@ -945,7 +1013,7 @@ function saveLogIssue() {
   issues.push({id,station_id:sid,description:desc,severity:sev,state:"open",resolution_note:null});
   if(sev==="high"){stations[sid].status="maintenance";showToast(`Issue #${id} logged — station flagged for maintenance`);}
   else showToast(`Issue #${id} logged`);
-  closeModal();render();
+  closeModal();render(); saveToServer();
 }
 
 function openResolve(iid) {
@@ -966,7 +1034,7 @@ function saveResolve(iid) {
   issue.state="resolved";
   issue.resolution_note=note||"Resolved.";
   showToast(`Issue #${iid} marked as resolved`);
-  closeModal();render();
+  closeModal();render(); saveToServer();
 }
 
 // ═══════════════════════════════════════════
@@ -1032,6 +1100,7 @@ function renderReports() {
 //  INIT
 // ═══════════════════════════════════════════
 render();
+autoLoadFromServer();
 </script>
 </body>
 </html>
