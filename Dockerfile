@@ -5,12 +5,12 @@ FROM ubuntu:22.04
 # Prevent interactive prompts during apt
 ENV DEBIAN_FRONTEND=noninteractive
 
-# ── 1. Install nginx (webserver) + curl + aws cli (to fetch from S3) ──────────
+# ── 1. Install nginx (with WebDAV module, for saving data) + curl + aws cli ───
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-        nginx \
-        curl \
-        unzip \
+    nginx-extras \
+    curl \
+    unzip \
     && curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o /tmp/awscliv2.zip \
     && unzip /tmp/awscliv2.zip -d /tmp \
     && /tmp/aws/install \
@@ -19,8 +19,10 @@ RUN apt-get update && \
     && rm -rf /var/lib/apt/lists/*
 
 # ── 2. Download the webapp from GitHub ───────────────────────────────────────
+# NOTE: fixed to pull LabMangerSupportedS3.html — this is the version with
+# autoLoadFromServer() / saveToServer(), not the plain LabManager.html
 RUN curl -fsSL \
-    "https://raw.githubusercontent.com/almog975/Devops-PythonFinallab/main/LabManager.html" \
+    "https://raw.githubusercontent.com/almog975/Devops-PythonFinallab/main/LabMangerSupportedS3.html" \
     -o /var/www/html/index.html
 
 # ── 3. Download dummy data from S3 to a temp location ────────────────────────
@@ -41,5 +43,4 @@ EXPOSE 80
 # ── 7. Entrypoint: move dummy data → volume, erase temp, start nginx ─────────
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
-
 ENTRYPOINT ["/entrypoint.sh"]
